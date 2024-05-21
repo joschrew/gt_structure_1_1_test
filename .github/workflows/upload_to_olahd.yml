@@ -41,7 +41,6 @@ jobs:
           -H "Authorization: Bearer $GITHUB_TOKEN" \
           $url \
         )
-        echo "Assets: ->$assets<-"
         echo $assets \
           | jq -r '.assets[] | select(.browser_download_url | endswith("ocrd.zip")).browser_download_url' \
           > $ASSETS_LINKS_FILE
