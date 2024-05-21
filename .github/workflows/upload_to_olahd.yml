@@ -4,12 +4,14 @@ on:
   workflow_dispatch:
 env:
   # readonly token with minimal permissions, just to not hit rate limits of github api
-  GITHUB_TOKEN: ${{ vars.github.token }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_TOKEN2: ${{ vars.github.token }}
   REPOSITORY_NAME: gt_structure_text_1_1  # TODO: set to `${{ vars.GITHUB_REPOSITORY }}` again
-  REPO_DUMMY: ${{ github.event.repository.name }}  # NOTE: test how to access real repo name
+  REPOSITORY_NAME2: ${{ github.repository }}  # TODO: remove this line
+  REPOSITORY_NAME3: ${{ github.event.repository.name }}  # TODO: remove this line
   OLAHD_USER: ${{ secrets.OLAHD_USER }}  # TODO:: add secret for user
   OLAHD_PASS: ${{ secrets.OLAHD_PASS }}  # TODO:: add secret for password
-  OLAHD_IMPORT_URL: ${{ secrets.OLAHD_UPLOAD_URL }} # TODO: set correct import url
+  OLAHD_IMPORT_URL: ${{ secrets.OLAHD_IMPORT_URL }}  # TODO: set correct import url
   ASSETS_LINKS_FILE: /tmp/assets_links.txt
   ASSETS_DIR: /tmp/assets
 
@@ -18,10 +20,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # TODO: remove this whole step
+    - name: do some debugging
+      run: |
+        echo "REPOSITORY_NAME: $REPOSITORY_NAME"
+        echo "REPOSITORY_NAME2: $REPOSITORY_NAME2"
+        echo "REPOSITORY_NAME3: $REPOSITORY_NAME3"
+        echo "URL: $OLAHD_IMPORT_URL"
+        echo "TOKEN: $GITHUB_TOKEN"
+        echo "TOKEN2: $GITHUB_TOKEN2"
+
     # Create a list of all ocrdzips contained in the latest release of the repo
     - name: read assets links
       run: |
-        echo "repo: $REPO_DUMMY"
         url="https://api.github.com/repos/ocr-d/$REPOSITORY_NAME/releases/latest"
         assets=$(curl -s \
           -H "Accept: application/vnd.github+json" \
