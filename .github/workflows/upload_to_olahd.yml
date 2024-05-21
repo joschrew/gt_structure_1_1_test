@@ -23,6 +23,7 @@ jobs:
     # TODO: remove this whole step
     - name: do some debugging
       run: |
+        echo "STEP: do some debugging"
         echo "REPOSITORY_NAME: $REPOSITORY_NAME"
         echo "REPOSITORY_NAME2: $REPOSITORY_NAME2"
         echo "REPOSITORY_NAME3: $REPOSITORY_NAME3"
@@ -33,6 +34,7 @@ jobs:
     # Create a list of all ocrdzips contained in the latest release of the repo
     - name: read assets links
       run: |
+        echo "STEP: read assets links"
         url="https://api.github.com/repos/ocr-d/$REPOSITORY_NAME/releases/latest"
         assets=$(curl -s \
           -H "Accept: application/vnd.github+json" \
@@ -45,6 +47,7 @@ jobs:
     # Download alle assets contained in the previous created list
     - name: download assets
       run: |
+        echo "STEP: download assets"
         mkdir $ASSETS_DIR
         count=0  # TODO: remove line: this is just for testing a subset and not all
         while IFS= read -r line
@@ -59,6 +62,7 @@ jobs:
     # iter through all assets (list of step 1) and upload all downloaded assets (step 2) to olahd
     - name: upload assets
       run: |
+        echo "STEP: upload assets"
         count=0  # TODO: remove line: this is just for testing a subset and not all
         first=1
         while IFS= read -r line
