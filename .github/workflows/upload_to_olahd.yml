@@ -1,0 +1,87 @@
+name: Upload latest releaes to olahd
+
+on:
+  workflow_dispatch:
+env:
+  # readonly token with minimal permissions, just to not hit rate limits of github api
+  GITHUB_TOKEN: ${{ vars.github.token }}
+  REPOSITORY_NAME: gt_structure_text_1_1  # TODO: set to `${{ vars.GITHUB_REPOSITORY }}` again
+  REPO_DUMMY: ${{ github.event.repository.name }}  # NOTE: test how to access real repo name
+  OLAHD_USER: ${{ secrets.OLAHD_USER }}  # TODO:: add secret for user
+  OLAHD_PASS: ${{ secrets.OLAHD_PASS }}  # TODO:: add secret for password
+  OLAHD_IMPORT_URL: ${{ secrets.OLAHD_UPLOAD_URL }} # TODO: set correct import url
+  ASSETS_LINKS_FILE: /tmp/assets_links.txt
+  ASSETS_DIR: /tmp/assets
+
+jobs:
+  upload-gt-data:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Create a list of all ocrdzips contained in the latest release of the repo
+    - name: read assets links
+      run: |
+        echo "repo: $REPO_DUMMY"
+        url="https://api.github.com/repos/ocr-d/$REPOSITORY_NAME/releases/latest"
+        assets=$(curl -s \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer $GITHUB_TOKEN" \
+          $url \
+        )
+        echo $assets \
+          | jq -r '.assets[] | select(.browser_download_url | endswith("ocrd.zip")).browser_download_url' \
+          > $ASSETS_LINKS_FILE
+    # Download alle assets contained in the previous created list
+    - name: download assets
+      run: |
+        mkdir $ASSETS_DIR
+        count=0  # TODO: remove line: this is just for testing a subset and not all
+        while IFS= read -r line
+        do
+          name=$(basename $line)
+          curl -sL --output "$ASSETS_DIR/$name" $line
+          count=$((count+1))  # TODO: remove this and next 3 lines
+          if test $count -ge 2 ; then
+            break
+          fi
+        done < $ASSETS_LINKS_FILE
+    # iter through all assets (list of step 1) and upload all downloaded assets (step 2) to olahd
+    - name: upload assets
+      run: |
+        count=0  # TODO: remove line: this is just for testing a subset and not all
+        first=1
+        while IFS= read -r line
+        do
+          # give olahd time between upload to create the index document
+          if test $first -eq 0 ; then
+            sleep 1  # TODO: set to 5 again
+          else
+            first=0
+          fi
+
+          # upload the data
+          name=$(basename $line)
+          file=$ASSETS_DIR/$name
+          res_json=$(curl "$OLAHD_IMPORT_URL" -s \
+            -H 'content-type: multipart/form-data' \
+            --user "$OLAHD_USER:$OLAHD_PASS" \
+            -F file=@$file
+          ) || { status=$?; echo "Error executing curl command. File: $file. Exit status: $status"; exit 1; }
+
+          # read the response
+          status=$(echo $res_json | jq -r '.httpCode')
+          if test $status -ge 200 && test $status -lt 300; then
+            pid=$(echo $res_json | jq -r '.pid')
+            echo "Successfully uploaded $name. PID: $pid"
+          elif test $status -eq 409 ; then
+            echo "Exact same ocrdzip for '$name' already present. Skipping"
+          else
+            text=$(echo $res_json | jq -r '.message')
+            echo "Upload failed for '$name'. Error: '$status'. Error-Msg: $text"
+            exit 1
+          fi
+          count=$((count+1))  # TODO: remove this and next 3 lines
+          if test $count -ge 2 ; then
+            break
+          fi
+        done < $ASSETS_LINKS_FILE
