@@ -6,7 +6,7 @@ env:
   # readonly token with minimal permissions, just to not hit rate limits of github api
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   GITHUB_TOKEN2: ${{ vars.github.token }}
-  REPOSITORY_NAME: gt_structure_text_1_1  # TODO: set to `${{ vars.GITHUB_REPOSITORY }}` again
+  REPOSITORY_NAME: gt_structure_1_1  # TODO: set to `${{ vars.GITHUB_REPOSITORY }}` again
   REPOSITORY_NAME2: ${{ github.repository }}  # TODO: remove this line
   REPOSITORY_NAME3: ${{ github.event.repository.name }}  # TODO: remove this line
   OLAHD_USER: ${{ secrets.OLAHD_USER }}  # TODO:: add secret for user
@@ -41,7 +41,7 @@ jobs:
           -H "Authorization: Bearer $GITHUB_TOKEN" \
           $url \
         )
-        echo "Assets: $assets"
+        echo "Assets: ->$assets<-"
         echo $assets \
           | jq -r '.assets[] | select(.browser_download_url | endswith("ocrd.zip")).browser_download_url' \
           > $ASSETS_LINKS_FILE
